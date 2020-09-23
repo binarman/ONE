@@ -6,7 +6,7 @@ HOST_OS?=linux
 TARGET_OS?=linux
 COVERAGE_BUILD?=0
 BENCHMARK_ACL_BUILD?=0
-OPTIONS?=
+OPTIONS?= -DCMAKE_CXX_FLAGS=-DRUY_PROFILER
 
 # make TARGET and TYPE to lowercase
 HOST_ARCH_LC=$(shell echo $(HOST_ARCH) | tr A-Z a-z)

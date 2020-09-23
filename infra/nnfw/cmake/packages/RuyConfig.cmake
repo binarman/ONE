@@ -1,4 +1,7 @@
+set(BUILD_RUY ON)
+
 function(_Ruy_Build)
+  message("start RUY build")
   # NOTE This line prevents multiple definitions of ruy target
   if(TARGET ruy)
     set(Ruy_FOUND TRUE PARENT_SCOPE)
@@ -22,6 +25,7 @@ function(_Ruy_Build)
 
   add_extdirectory("${CMAKE_CURRENT_LIST_DIR}/Ruy" ruy)
   set(Ruy_FOUND TRUE PARENT_SCOPE)
+  message("end RUY build")
 endfunction(_Ruy_Build)
 
 if(BUILD_RUY)

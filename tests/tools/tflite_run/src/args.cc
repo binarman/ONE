@@ -37,7 +37,7 @@ Args::Args(const int argc, char **argv) noexcept
 
 void Args::Initialize(void)
 {
-  auto process_input = [&](const std::string &v) {
+/*  auto process_input = [&](const std::string &v) {
     _input_filename = v;
 
     if (!_input_filename.empty())
@@ -68,86 +68,100 @@ void Args::Initialize(void)
         exit(1);
       }
     }
-  };
+  };*/
 
-  try
-  {
-    // General options
-    po::options_description general("General options");
-
-    // clang-format off
-  general.add_options()
-    ("help,h", "Display available options")
-    ("input,i", po::value<std::string>()->default_value("")->notifier(process_input), "Input filename")
-    ("dump,d", po::value<std::string>()->default_value("")->notifier([&](const auto &v) { _dump_filename = v; }), "Output filename")
-    ("ishapes", po::value<std::vector<int>>()->multitoken()->notifier([&](const auto &v) { _input_shapes = v; }), "Input shapes")
-    ("compare,c", po::value<std::string>()->default_value("")->notifier([&](const auto &v) { _compare_filename = v; }), "filename to be compared with")
-    ("tflite", po::value<std::string>()->required()->notifier(process_tflite))
-    ("num_runs,r", po::value<int>()->default_value(1)->notifier([&](const auto &v) { _num_runs = v; }), "The number of runs")
-    ("warmup_runs,w", po::value<int>()->default_value(0)->notifier([&](const auto &v) { _warmup_runs = v; }), "The number of warmup runs")
-    ("run_delay,t", po::value<int>()->default_value(-1)->notifier([&](const auto &v) { _run_delay = v; }), "Delay time(ms) between runs (as default no delay)")
-    ("gpumem_poll,g", po::value<bool>()->default_value(false)->notifier([&](const auto &v) { _gpumem_poll = v; }), "Check gpu memory polling separately")
-    ("mem_poll,m", po::value<bool>()->default_value(false), "Check memory polling")
-    ("write_report,p", po::value<bool>()->default_value(false)->notifier([&](const auto &v) { _write_report = v; }), "Write report")
-    ("validate", po::value<bool>()->default_value(true)->notifier([&](const auto &v) { _tflite_validate = v; }), "Validate tflite model")
-    ("verbose_level,v", po::value<int>()->default_value(0)->notifier([&](const auto &v) { _verbose_level = v; }), "Verbose level\n"
-         "0: prints the only result. Messages btw run don't print\n"
-         "1: prints result and message btw run\n"
-         "2: prints all of messages to print\n")
-    ;
-    // clang-format on
-
-    _options.add(general);
-    _positional.add("tflite", 1);
-  }
-  catch (const std::bad_cast &e)
-  {
-    std::cerr << "error by bad cast during initialization of boost::program_options" << e.what()
-              << '\n';
-    exit(1);
-  }
+//  try
+//  {
+//    // General options
+//    po::options_description general("General options");
+//
+//    // clang-format off
+//  general.add_options()
+//    ("help,h", "Display available options")
+//    ("input,i", po::value<std::string>()->default_value("")->notifier(process_input), "Input filename")
+//    ("dump,d", po::value<std::string>()->default_value("")->notifier([&](const auto &v) { _dump_filename = v; }), "Output filename")
+//    ("ishapes", po::value<std::vector<int>>()->multitoken()->notifier([&](const auto &v) { _input_shapes = v; }), "Input shapes")
+//    ("compare,c", po::value<std::string>()->default_value("")->notifier([&](const auto &v) { _compare_filename = v; }), "filename to be compared with")
+//    ("tflite", po::value<std::string>()->required()->notifier(process_tflite))
+//    ("num_runs,r", po::value<int>()->default_value(1)->notifier([&](const auto &v) { _num_runs = v; }), "The number of runs")
+//    ("warmup_runs,w", po::value<int>()->default_value(0)->notifier([&](const auto &v) { _warmup_runs = v; }), "The number of warmup runs")
+//    ("run_delay,t", po::value<int>()->default_value(-1)->notifier([&](const auto &v) { _run_delay = v; }), "Delay time(ms) between runs (as default no delay)")
+//    ("gpumem_poll,g", po::value<bool>()->default_value(false)->notifier([&](const auto &v) { _gpumem_poll = v; }), "Check gpu memory polling separately")
+//    ("mem_poll,m", po::value<bool>()->default_value(false), "Check memory polling")
+//    ("write_report,p", po::value<bool>()->default_value(false)->notifier([&](const auto &v) { _write_report = v; }), "Write report")
+//    ("validate", po::value<bool>()->default_value(true)->notifier([&](const auto &v) { _tflite_validate = v; }), "Validate tflite model")
+//    ("verbose_level,v", po::value<int>()->default_value(0)->notifier([&](const auto &v) { _verbose_level = v; }), "Verbose level\n"
+//         "0: prints the only result. Messages btw run don't print\n"
+//         "1: prints result and message btw run\n"
+//         "2: prints all of messages to print\n")
+//    ;
+//    // clang-format on
+//
+//    _options.add(general);
+//    _positional.add("tflite", 1);
+//  }
+//  catch (const std::bad_cast &e)
+//  {
+//    std::cerr << "error by bad cast during initialization of boost::program_options" << e.what()
+//              << '\n';
+//    exit(1);
+//  }
 }
 
 void Args::Parse(const int argc, char **argv)
 {
-  po::variables_map vm;
-  po::store(po::command_line_parser(argc, argv).options(_options).positional(_positional).run(),
-            vm);
+//  po::variables_map vm;
+//  po::store(po::command_line_parser(argc, argv).options(_options).positional(_positional).run(),
+//            vm);
 
-  {
-    auto conflicting_options = [&](const std::string &o1, const std::string &o2) {
-      if ((vm.count(o1) && !vm[o1].defaulted()) && (vm.count(o2) && !vm[o2].defaulted()))
-      {
-        throw boost::program_options::error(std::string("Two options '") + o1 + "' and '" + o2 +
-                                            "' cannot be given at once.");
-      }
-    };
+//  {
+//    auto conflicting_options = [&](const std::string &o1, const std::string &o2) {
+//      if ((vm.count(o1) && !vm[o1].defaulted()) && (vm.count(o2) && !vm[o2].defaulted()))
+//      {
+//        throw boost::program_options::error(std::string("Two options '") + o1 + "' and '" + o2 +
+//                                            "' cannot be given at once.");
+//      }
+//    };
+//
+//    conflicting_options("input", "compare");
+//  }
 
-    conflicting_options("input", "compare");
-  }
+//  if (vm.count("help"))
+//  {
+//    std::cout << "tflite_run\n\n";
+//    std::cout << "Usage: " << argv[0] << " <.tflite> [<options>]\n\n";
+//    std::cout << _options;
+//    std::cout << "\n";
+//
+//    exit(0);
+//  }
+//
+//  po::notify(vm);
+//
+//  // This must be run after `notify` as `_warm_up_runs` must have been processed before.
+//  if (vm.count("mem_poll"))
+//  {
+//    _mem_poll = vm["mem_poll"].as<bool>();
+//    // Instead of EXECUTE to avoid overhead, memory polling runs on WARMUP
+//    if (_mem_poll && _warmup_runs == 0)
+//    {
+//      _warmup_runs = 1;
+//    }
+//  }
 
-  if (vm.count("help"))
-  {
-    std::cout << "tflite_run\n\n";
-    std::cout << "Usage: " << argv[0] << " <.tflite> [<options>]\n\n";
-    std::cout << _options;
-    std::cout << "\n";
-
-    exit(0);
-  }
-
-  po::notify(vm);
-
-  // This must be run after `notify` as `_warm_up_runs` must have been processed before.
-  if (vm.count("mem_poll"))
-  {
-    _mem_poll = vm["mem_poll"].as<bool>();
-    // Instead of EXECUTE to avoid overhead, memory polling runs on WARMUP
-    if (_mem_poll && _warmup_runs == 0)
-    {
-      _warmup_runs = 1;
-    }
-  }
+  //_input_filename = "input";
+  _dump_filename = "output";
+  //_input_shapes = ;
+  //_compare_filename = ;
+  _tflite_filename = "model.tflite";
+  _num_runs = 100;
+  _warmup_runs = 5;
+  _run_delay = 20;
+  _gpumem_poll = false;
+  _mem_poll = false;
+  _write_report = true;
+  _tflite_validate = false;
+  _verbose_level = 1;
 }
 
 } // end of namespace TFLiteRun
