@@ -30,18 +30,41 @@ namespace
 char *seq_to_label(const onert::ir::OpSequence *op_seq, const onert::ir::Operations &operations, const onert::ir::Operands &operands)
 {
   bool is_sparse = false;
+  bool need_broadcast = false;
   auto &operation = operations.at(*op_seq->begin());
-  for (const onert::ir::OperandIndex &idx : operation.getInputs())
+  const auto &inputs = operation.getInputs();
+  if (operation.opcode() == onert::ir::OpCode::BinaryArithmetic)
+  {
+    auto &lhs = operands.at(inputs.at(0));
+    auto &rhs = operands.at(inputs.at(1));
+    const onert::ir::Shape & lhs_shape = lhs.shape();
+    const onert::ir::Shape & rhs_shape = rhs.shape();
+    if (lhs_shape.rank() != rhs_shape.rank())
+      need_broadcast = true;
+    else
+      for (int i = 0; i < lhs_shape.rank(); ++i)
+        if (lhs_shape.dim(i) != rhs_shape.dim(i))
+        {
+          need_broadcast = true;
+          break;
+        }
+  }
+  for (const onert::ir::OperandIndex &idx : inputs)
   {
     if (operands.exist(idx) && operands.at(idx).typeInfo().sparsity())
     {
       is_sparse = true;
+      break;
     }
   }
   auto node_name = operation.name();
   if (is_sparse)
   {
     node_name += "_sparse";
+  }
+  if (need_broadcast)
+  {
+    node_name += "_broadcast";
   }
   char *cstr = new char[node_name.length() + 1];
   std::strcpy(cstr, node_name.c_str());

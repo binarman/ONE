@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#define PATH_MAX 1024
+
 #include "allocation.h"
 #include "args.h"
 #include "benchmark.h"

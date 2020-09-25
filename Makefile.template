@@ -6,7 +6,7 @@ HOST_OS?=linux
 TARGET_OS?=linux
 COVERAGE_BUILD?=0
 BENCHMARK_ACL_BUILD?=0
-OPTIONS?= -DCMAKE_CXX_FLAGS=-DRUY_PROFILER
+OPTIONS?= -DCMAKE_CXX_FLAGS="-DRUY_PROFILER -g"
 
 # make TARGET and TYPE to lowercase
 HOST_ARCH_LC=$(shell echo $(HOST_ARCH) | tr A-Z a-z)
@@ -141,7 +141,7 @@ endif
 	touch $(TIMESTAMP_CONFIGURE)
 
 build_internal: $(BUILD_FOLDER)
-	NNFW_WORKSPACE="$(WORKSPACE)" ./nnfw build -j $(NPROCS)
+	NNFW_WORKSPACE="$(WORKSPACE)" ./nnfw build -j 1 # $(NPROCS)
 	rm -rf $(BUILD_ALIAS)
 	ln -s $(BUILD_FOLDER) $(BUILD_ALIAS)
 	touch $(TIMESTAMP_BUILD)
