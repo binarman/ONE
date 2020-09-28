@@ -28,14 +28,14 @@ namespace exec
 namespace
 {
 
-std::ostream &operator<<(std::ostream &os, const std::vector<int32_t> &v)
-{
-  os << "[";
-  for (auto i : v)
-    os << i << ", ";
-  os << "]";
-  return os;
-}
+//std::ostream &operator<<(std::ostream &os, const std::vector<int32_t> &v)
+//{
+//  os << "[";
+//  for (auto i : v)
+//    os << i << ", ";
+//  os << "]";
+//  return os;
+//}
 
 std::vector<int32_t> simplify_shape(const std::vector<int32_t> &shape)
 {
@@ -57,19 +57,40 @@ bool shapes_equal(const std::vector<int32_t> &shape1, const std::vector<int32_t>
   return true;
 }
 
-char *seq_to_label(const onert::ir::OpSequence *op_seq, const onert::ir::Operations &operations, const onert::ir::Operands &operands)
+char *seq_to_label(const onert::ir::OpSequence *op_seq, const onert::ir::Operations &operations,
+                   const onert::ir::Operands &operands, std::map<std::string, int> &computations)
 {
   bool is_sparse = false;
   bool need_broadcast = false;
   auto &operation = operations.at(*op_seq->begin());
   const auto &inputs = operation.getInputs();
+  std::string suffix;
+  int complexity = 0;
   if (operation.opcode() == onert::ir::OpCode::BinaryArithmetic)
   {
     auto &lhs = operands.at(inputs.at(0));
     auto &rhs = operands.at(inputs.at(1));
     const onert::ir::Shape & lhs_shape = lhs.shape();
     const onert::ir::Shape & rhs_shape = rhs.shape();
-    need_broadcast = !shapes_equal(lhs_shape.dims(), rhs_shape.dims());
+
+    std::vector<int32_t> simplified_lhs_shape = simplify_shape(lhs_shape.dims());
+    std::vector<int32_t> simplified_rhs_shape = simplify_shape(rhs_shape.dims());
+
+    need_broadcast = !shapes_equal(simplified_lhs_shape, simplified_rhs_shape);
+
+    complexity = std::max(lhs_shape.num_elements(), rhs_shape.num_elements());
+
+    switch (lhs.typeInfo().type())
+    {
+      case ir::DataType::FLOAT32:
+        suffix += "_float";
+        break;
+      case ir::DataType::INT32:
+        suffix += "_int32";
+        break;
+      default:
+        assert(false);
+    }
   }
   for (const onert::ir::OperandIndex &idx : inputs)
   {
@@ -80,23 +101,27 @@ char *seq_to_label(const onert::ir::OpSequence *op_seq, const onert::ir::Operati
     }
   }
   auto node_name = operation.name();
-  if (is_sparse)
-  {
-    node_name += "_sparse";
-  }
-  if (need_broadcast)
-  {
-    node_name += "_broadcast";
-    auto &lhs = operands.at(inputs.at(0));
-    auto &rhs = operands.at(inputs.at(1));
-    std::vector<int32_t> simplified_lhs_shape = simplify_shape(lhs.shape().dims());
-    std::vector<int32_t> simplified_rhs_shape = simplify_shape(rhs.shape().dims());
-    // std::cerr << operation.name() << " " << lhs.shape().dims() << " " << rhs.shape().dims() << "\n";
-    bool broadcast_simplification = shapes_equal(simplified_lhs_shape, simplified_rhs_shape);
-    bool scalar_operand = (simplified_rhs_shape.size() == 0) || (simplified_lhs_shape.size() == 0);
-    if (!(broadcast_simplification || scalar_operand))
-      std::cerr << "FAILED TO OPTIMIZE " << operation.name() << " " << lhs.shape().dims() << " " << rhs.shape().dims() << "\n";
-  }
+//  if (is_sparse)
+//  {
+//    node_name += "_sparse";
+//  }
+//  if (need_broadcast)
+//  {
+//    node_name += "_broadcast";
+//    auto &lhs = operands.at(inputs.at(0));
+//    auto &rhs = operands.at(inputs.at(1));
+//    std::vector<int32_t> simplified_lhs_shape = simplify_shape(lhs.shape().dims());
+//    std::vector<int32_t> simplified_rhs_shape = simplify_shape(rhs.shape().dims());
+//    // std::cerr << operation.name() << " " << lhs.shape().dims() << " " << rhs.shape().dims() << "\n";
+//    bool broadcast_simplification = shapes_equal(simplified_lhs_shape, simplified_rhs_shape);
+//    bool scalar_operand = (simplified_rhs_shape.size() == 0) || (simplified_lhs_shape.size() == 0);
+//    if (!(broadcast_simplification || scalar_operand))
+//      std::cerr << "FAILED TO OPTIMIZE " << operation.name() << " " << lhs.shape().dims() << " " << rhs.shape().dims() << "\n";
+//  }
+
+  node_name += suffix;
+  computations[node_name] += complexity;
+
   char *cstr = new char[node_name.length() + 1];
   std::strcpy(cstr, node_name.c_str());
   return cstr;
@@ -106,6 +131,7 @@ char *seq_to_label(const onert::ir::OpSequence *op_seq, const onert::ir::Operati
 
 void LinearExecutor::executeImpl()
 {
+  std::map<std::string, int> computations;
   _subject.notifyModelBegin(this);
   for (auto &&code : _code)
   {
@@ -113,7 +139,7 @@ void LinearExecutor::executeImpl()
     const auto backend = code.lower_info->backend();
 // TODO : Move ruy profiler into ExecutionObserver
 #ifdef RUY_PROFILER
-    ruy::profiler::ScopeLabel label(seq_to_label(op_seq, _graph.operations(), _graph.operands()));
+    ruy::profiler::ScopeLabel label(seq_to_label(op_seq, _graph.operations(), _graph.operands(), computations));
 #endif
     _subject.notifyJobBegin(this, op_seq, backend);
 
@@ -125,6 +151,11 @@ void LinearExecutor::executeImpl()
 
     _subject.notifyJobEnd(this, op_seq, backend);
   }
+//  std::cerr << "COMPUTATIONS\n";
+//  for (auto &item: computations)
+//  {
+//    std::cerr << item.first << " " << item.second << "\n";
+//  }
   _subject.notifyModelEnd(this);
 }
 

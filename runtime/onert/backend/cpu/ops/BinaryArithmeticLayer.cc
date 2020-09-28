@@ -45,6 +45,10 @@ void eval(const IPortableTensor *lhs, const IPortableTensor *rhs, IPortableTenso
     return;
   }
 
+//  if (arithmetic_type == nnfw::cker::BinaryArithmeticOpType::ADD)
+//  {
+//    std::cerr << "activations " << op_params.float_activation_min << " " << op_params.float_activation_max << "\n";
+//  }
   nnfw::cker::BinaryArithmeticOp<arithmetic_type>(
       op_params, getTensorShape(lhs), reinterpret_cast<const T *>(lhs->buffer()),
       getTensorShape(rhs), reinterpret_cast<const T *>(rhs->buffer()), getTensorShape(output),

@@ -19,6 +19,7 @@
 #define __NNFW_CKER_OPTIMIZED_BINARYARITHMETICOPS_H__
 
 #include <functional>
+#include <limits>
 #include "cker/neon/neon_check.h"
 #include "cker/operation/reference/BinaryArithmeticOps.h"
 #include "cker/Shape.h"
@@ -227,6 +228,40 @@ inline void AddElementwise(int size, const BinaryArithmeticOpParam &params,
 #ifdef USE_NEON
   const auto activation_min = vdupq_n_f32(params.float_activation_min);
   const auto activation_max = vdupq_n_f32(params.float_activation_max);
+  if (params.float_activation_max == std::numeric_limits<float>::max() &&
+      params.float_activation_min == -std::numeric_limits<float>::max())
+  {
+    for (; i <= size - 16; i += 16)
+    {
+      auto a10 = vld1q_f32(input1_data + i);
+      auto a11 = vld1q_f32(input1_data + i + 4);
+      auto a12 = vld1q_f32(input1_data + i + 8);
+      auto a13 = vld1q_f32(input1_data + i + 12);
+      auto a20 = vld1q_f32(input2_data + i);
+      auto a21 = vld1q_f32(input2_data + i + 4);
+      auto a22 = vld1q_f32(input2_data + i + 8);
+      auto a23 = vld1q_f32(input2_data + i + 12);
+      auto x0 = vaddq_f32(a10, a20);
+      auto x1 = vaddq_f32(a11, a21);
+      auto x2 = vaddq_f32(a12, a22);
+      auto x3 = vaddq_f32(a13, a23);
+      vst1q_f32(output_data + i, x0);
+      vst1q_f32(output_data + i + 4, x1);
+      vst1q_f32(output_data + i + 8, x2);
+      vst1q_f32(output_data + i + 12, x3);
+    }
+    for (; i <= size - 4; i += 4)
+    {
+      auto a1 = vld1q_f32(input1_data + i);
+      auto a2 = vld1q_f32(input2_data + i);
+      auto x = vaddq_f32(a1, a2);
+      vst1q_f32(output_data + i, x);
+    }
+    for (; i < size; i++)
+      output_data[i] = input1_data[i] + input2_data[i];
+    return;
+  }
+  *((char *)1) = 123;
   for (; i <= size - 16; i += 16)
   {
     auto a10 = vld1q_f32(input1_data + i);
@@ -520,6 +555,43 @@ inline void MulElementwise(int size, const BinaryArithmeticOpParam &params,
                            const float *input1_data, const float *input2_data, float *output_data)
 {
   int i = 0;
+
+  if (params.float_activation_max == std::numeric_limits<float>::max() &&
+      params.float_activation_min == -std::numeric_limits<float>::max())
+  {
+#ifdef USE_NEON
+    for (; i <= size - 16; i += 16)
+    {
+      auto a10 = vld1q_f32(input1_data + i);
+      auto a11 = vld1q_f32(input1_data + i + 4);
+      auto a12 = vld1q_f32(input1_data + i + 8);
+      auto a13 = vld1q_f32(input1_data + i + 12);
+      auto a20 = vld1q_f32(input2_data + i);
+      auto a21 = vld1q_f32(input2_data + i + 4);
+      auto a22 = vld1q_f32(input2_data + i + 8);
+      auto a23 = vld1q_f32(input2_data + i + 12);
+      auto x0 = vmulq_f32(a10, a20);
+      auto x1 = vmulq_f32(a11, a21);
+      auto x2 = vmulq_f32(a12, a22);
+      auto x3 = vmulq_f32(a13, a23);
+      vst1q_f32(output_data + i, x0);
+      vst1q_f32(output_data + i + 4, x1);
+      vst1q_f32(output_data + i + 8, x2);
+      vst1q_f32(output_data + i + 12, x3);
+    }
+    for (; i <= size - 4; i += 4)
+    {
+      auto a1 = vld1q_f32(input1_data + i);
+      auto a2 = vld1q_f32(input2_data + i);
+      auto x = vmulq_f32(a1, a2);
+      vst1q_f32(output_data + i, x);
+    }
+#endif // NEON
+
+    for (; i < size; i++)
+      output_data[i] = input1_data[i] * input2_data[i];
+    return;
+  }
 
 #ifdef USE_NEON
   const auto activation_min = vdupq_n_f32(params.float_activation_min);
