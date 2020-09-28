@@ -24,9 +24,39 @@ namespace onert
 namespace exec
 {
 
-#ifdef RUY_PROFILER
+//#ifdef RUY_PROFILER
 namespace
 {
+
+std::ostream &operator<<(std::ostream &os, const std::vector<int32_t> &v)
+{
+  os << "[";
+  for (auto i : v)
+    os << i << ", ";
+  os << "]";
+  return os;
+}
+
+std::vector<int32_t> simplify_shape(const std::vector<int32_t> &shape)
+{
+  size_t non_one_dim = 0;
+  while (non_one_dim < shape.size() && shape[non_one_dim] == 1) ++non_one_dim;
+  std::vector<int32_t> simple_shape;
+  for (size_t i = non_one_dim; i < shape.size(); ++i)
+    simple_shape.push_back(shape[i]);
+  return simple_shape;
+}
+
+bool shapes_equal(const std::vector<int32_t> &shape1, const std::vector<int32_t> &shape2)
+{
+  if (shape1.size() != shape2.size())
+    return false;
+  for (size_t i = 0; i < shape1.size(); ++i)
+    if (shape1[i] != shape2[i])
+      return false;
+  return true;
+}
+
 char *seq_to_label(const onert::ir::OpSequence *op_seq, const onert::ir::Operations &operations, const onert::ir::Operands &operands)
 {
   bool is_sparse = false;
@@ -39,15 +69,7 @@ char *seq_to_label(const onert::ir::OpSequence *op_seq, const onert::ir::Operati
     auto &rhs = operands.at(inputs.at(1));
     const onert::ir::Shape & lhs_shape = lhs.shape();
     const onert::ir::Shape & rhs_shape = rhs.shape();
-    if (lhs_shape.rank() != rhs_shape.rank())
-      need_broadcast = true;
-    else
-      for (int i = 0; i < lhs_shape.rank(); ++i)
-        if (lhs_shape.dim(i) != rhs_shape.dim(i))
-        {
-          need_broadcast = true;
-          break;
-        }
+    need_broadcast = !shapes_equal(lhs_shape.dims(), rhs_shape.dims());
   }
   for (const onert::ir::OperandIndex &idx : inputs)
   {
@@ -65,13 +87,22 @@ char *seq_to_label(const onert::ir::OpSequence *op_seq, const onert::ir::Operati
   if (need_broadcast)
   {
     node_name += "_broadcast";
+    auto &lhs = operands.at(inputs.at(0));
+    auto &rhs = operands.at(inputs.at(1));
+    std::vector<int32_t> simplified_lhs_shape = simplify_shape(lhs.shape().dims());
+    std::vector<int32_t> simplified_rhs_shape = simplify_shape(rhs.shape().dims());
+    // std::cerr << operation.name() << " " << lhs.shape().dims() << " " << rhs.shape().dims() << "\n";
+    bool broadcast_simplification = shapes_equal(simplified_lhs_shape, simplified_rhs_shape);
+    bool scalar_operand = (simplified_rhs_shape.size() == 0) || (simplified_lhs_shape.size() == 0);
+    if (!(broadcast_simplification || scalar_operand))
+      std::cerr << "FAILED TO OPTIMIZE " << operation.name() << " " << lhs.shape().dims() << " " << rhs.shape().dims() << "\n";
   }
   char *cstr = new char[node_name.length() + 1];
   std::strcpy(cstr, node_name.c_str());
   return cstr;
 }
 } // namespace
-#endif
+//#endif
 
 void LinearExecutor::executeImpl()
 {
