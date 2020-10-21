@@ -30,24 +30,18 @@
 namespace
 {
 
-void readDataFromFile(const std::string &filename, char *data, size_t data_size)
+void fillInputWithOnes(char *data, size_t data_size)
 {
-  std::ifstream fs(filename, std::ifstream::binary);
-  if (fs.fail())
-    throw std::runtime_error("Cannot open file \"" + filename + "\".\n");
-  if (fs.read(data, data_size).fail())
-    throw std::runtime_error("Failed to read data from file \"" + filename + "\".\n");
+  for (int i = 0; i < data_size/sizeof(float); ++i)
+    reinterpret_cast<float*>(data)[i] = 1.f;
 }
 
-void writeDataToFile(const std::string &filename, const char *data, size_t data_size)
+void printOutput(const char *data, size_t data_size)
 {
-  std::ofstream fs(filename, std::ofstream::binary);
-  if (fs.fail())
-    throw std::runtime_error("Cannot open file \"" + filename + "\".\n");
-  if (fs.write(data, data_size).fail())
-  {
-    throw std::runtime_error("Failed to write data to file \"" + filename + "\".\n");
-  }
+  std::cout << "output: ";
+  for (int i = 0; i < data_size/sizeof(float); ++i)
+    std::cout << reinterpret_cast<const float*>(data)[i] << ", ";
+  std::cout << "\n";
 }
 
 std::unique_ptr<luci::Module> importModel(const std::string &filename)
@@ -80,7 +74,7 @@ template <typename NodeT> size_t getTensorSize(const NodeT *node)
  */
 int entry(int argc, char **argv)
 {
-  if (argc != 5)
+  if (argc != 2)
   {
     std::cerr
         << "Usage: " << argv[0]
@@ -89,35 +83,16 @@ int entry(int argc, char **argv)
   }
 
   const char *filename = argv[1];
-  const int32_t num_inputs = atoi(argv[2]);
+/*  const int32_t num_inputs = atoi(argv[2]);
   const char *input_prefix = argv[3];
   const char *output_file = argv[4];
-  const std::string intermediate_filename = std::string(filename) + ".inter.circle";
-
-  // Load model from the file
-  std::unique_ptr<luci::Module> initial_module = importModel(filename);
-  if (initial_module == nullptr)
-  {
-    std::cerr << "ERROR: Failed to load '" << filename << "'" << std::endl;
-    return EXIT_FAILURE;
-  }
-
-  // Export to a Circle file
-  luci::CircleExporter exporter;
-
-  luci::CircleFileExpContract contract(initial_module.get(), intermediate_filename);
-
-  if (!exporter.invoke(&contract))
-  {
-    std::cerr << "ERROR: Failed to export '" << intermediate_filename << "'" << std::endl;
-    return EXIT_FAILURE;
-  }
+  const std::string intermediate_filename = std::string(filename) + ".inter.circle";*/
 
   // Import model again
-  std::unique_ptr<luci::Module> module = importModel(intermediate_filename);
+  std::unique_ptr<luci::Module> module = importModel(filename);
   if (module == nullptr)
   {
-    std::cerr << "ERROR: Failed to load '" << intermediate_filename << "'" << std::endl;
+    std::cerr << "ERROR: Failed to load '" << filename << "'" << std::endl;
     return EXIT_FAILURE;
   }
 
@@ -128,13 +103,11 @@ int entry(int argc, char **argv)
   // Data for n'th input is read from ${input_prefix}n
   // (ex: Add.circle.input0, Add.circle.input1 ..)
   const auto input_nodes = loco::input_nodes(module->graph());
-  assert(num_inputs == input_nodes.size());
-  for (int32_t i = 0; i < num_inputs; i++)
+  for (int32_t i = 0; i < input_nodes.size(); i++)
   {
     const auto *input_node = loco::must_cast<const luci::CircleInput *>(input_nodes[i]);
     std::vector<char> input_data(getTensorSize(input_node));
-    readDataFromFile(std::string(input_prefix) + std::to_string(i), input_data.data(),
-                     input_data.size());
+    fillInputWithOnes(input_data.data(), input_data.size());
     interpreter.writeInputTensor(input_node, input_data.data(), input_data.size());
   }
 
@@ -153,25 +126,7 @@ int entry(int argc, char **argv)
     // (ex: Add.circle.output0)
     // Output shape is written in ${output_file}.shape
     // (ex: Add.circle.output0.shape)
-    writeDataToFile(std::string(output_file) + std::to_string(i), output_data.data(),
-                    output_data.size());
-    // In case of Tensor output is Scalar value.
-    // The output tensor with rank 0 is treated as a scalar with shape (1)
-    if (output_node->rank() == 0)
-    {
-      writeDataToFile(std::string(output_file) + std::to_string(i) + ".shape", "1", 1);
-    }
-    else
-    {
-      auto shape_str = std::to_string(output_node->dim(0).value());
-      for (int j = 1; j < output_node->rank(); j++)
-      {
-        shape_str += ",";
-        shape_str += std::to_string(output_node->dim(j).value());
-      }
-      writeDataToFile(std::string(output_file) + std::to_string(i) + ".shape", shape_str.c_str(),
-                      shape_str.size());
-    }
+    printOutput(output_data.data(), output_data.size());
   }
   return EXIT_SUCCESS;
 }
