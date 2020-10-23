@@ -82,6 +82,8 @@ set(SOURCES
     Reverse.cpp
     Rsqrt.h
     Rsqrt.cpp
+    Shape.h
+    Shape.cpp
     Slice.h
     Slice.cpp
     Softmax.h
@@ -105,7 +107,9 @@ set(SOURCES
     TransposeConv.h
     TransposeConv.cpp
     Unpack.h
-    Unpack.cpp)
+    Unpack.cpp
+    While.h
+    While.cpp)
 
 list(APPEND SOURCES
     BinaryOpCommon.h

@@ -77,6 +77,7 @@ bool isExecutableNode(const luci::CircleNode *node)
     case luci::CircleOpcode::CIRCLEIFOUT:
     case luci::CircleOpcode::CIRCLESPLITOUT:
     case luci::CircleOpcode::CIRCLEUNPACKOUT:
+    case luci::CircleOpcode::CIRCLEWHILEOUT:
       return false;
     default:
       return true;
@@ -94,6 +95,7 @@ bool isTensorProducingNode(const luci::CircleNode *node)
     case luci::CircleOpcode::IF:
     case luci::CircleOpcode::SPLIT:
     case luci::CircleOpcode::UNPACK:
+    case luci::CircleOpcode::WHILE:
       return false;
     default:
       return true;
@@ -140,8 +142,7 @@ void GraphLoader::loadTensors()
       quantization.quantized_dimension = params->quantized_dimension;
     }
 
-    auto tensor = std::make_unique<Tensor>(node->dtype(), std::move(shape), std::move(quantization),
-                                           node->name());
+    auto tensor = std::make_unique<Tensor>(node->dtype(), std::move(shape), std::move(quantization), node->name());
 
     if (const auto *const_node = dynamic_cast<const luci::CircleConst *>(node))
     {

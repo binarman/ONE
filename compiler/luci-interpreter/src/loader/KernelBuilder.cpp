@@ -56,6 +56,7 @@
 #include "kernels/ResizeNearestNeighbor.h"
 #include "kernels/Reverse.h"
 #include "kernels/Rsqrt.h"
+#include "kernels/Shape.h"
 #include "kernels/Slice.h"
 #include "kernels/Softmax.h"
 #include "kernels/SpaceToDepth.h"
@@ -65,9 +66,10 @@
 #include "kernels/Sub.h"
 #include "kernels/Squeeze.h"
 #include "kernels/Tanh.h"
-#include "kernels/Unpack.h"
 #include "kernels/Transpose.h"
 #include "kernels/TransposeConv.h"
+#include "kernels/Unpack.h"
+#include "kernels/While.h"
 
 #include <stdexcept>
 
@@ -671,6 +673,16 @@ std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleRsqrt *node)
   return std::make_unique<kernels::Rsqrt>(input, output);
 }
 
+std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleShape *node)
+{
+  assert(node->arity() == 1);
+
+  const Tensor *input = getInputTensor(node->input());
+  Tensor *output = getOutputTensor(node);
+
+  return std::make_unique<kernels::GetShape>(input, output);
+}
+
 std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleSub *node)
 {
   assert(node->arity() == 2);
@@ -837,6 +849,26 @@ std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleUnpack *node)
 
   // NOTE 'num' attribute is ignored.
   return std::make_unique<kernels::Unpack>(input, std::move(outputs), params);
+}
+
+std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleWhile *node)
+{
+  auto output_nodes = collectOutputNodes<luci::CircleWhileOut>(node);
+  assert(node->arity() == node->input_count());
+  assert(output_nodes.size() == static_cast<size_t>(node->output_count()));
+
+  std::vector<const Tensor *> inputs(node->input_count());
+  for (uint32_t i = 0; i < node->input_count(); ++i)
+  {
+    inputs[i] = getInputTensor(node->input(i));
+  }
+  std::vector<Tensor *> outputs = getOutputTensors(output_nodes);
+
+  RuntimeGraph *cond_graph = getRuntimeGraph(node->cond_graph());
+  RuntimeGraph *body_graph = getRuntimeGraph(node->body_graph());
+
+  return std::make_unique<kernels::While>(std::move(inputs), std::move(outputs), cond_graph,
+                                          body_graph);
 }
 
 } // namespace luci_interpreter

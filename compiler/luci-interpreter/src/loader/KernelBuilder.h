@@ -82,6 +82,7 @@ public:
   std::unique_ptr<Kernel> visit(const luci::CircleResizeNearestNeighbor *node) override;
   std::unique_ptr<Kernel> visit(const luci::CircleReverseV2 *node) override;
   std::unique_ptr<Kernel> visit(const luci::CircleRsqrt *node) override;
+  std::unique_ptr<Kernel> visit(const luci::CircleShape *node) override;
   std::unique_ptr<Kernel> visit(const luci::CircleSub *node) override;
   std::unique_ptr<Kernel> visit(const luci::CircleSlice *node) override;
   std::unique_ptr<Kernel> visit(const luci::CircleSoftmax *node) override;
@@ -94,6 +95,8 @@ public:
   std::unique_ptr<Kernel> visit(const luci::CircleTranspose *node) override;
   std::unique_ptr<Kernel> visit(const luci::CircleTransposeConv *node) override;
   std::unique_ptr<Kernel> visit(const luci::CircleUnpack *node) override;
+  std::unique_ptr<Kernel> visit(const luci::CircleWhile *node) override;
+
 
 private:
   const Tensor *getInputTensor(const loco::Node *node) const;
