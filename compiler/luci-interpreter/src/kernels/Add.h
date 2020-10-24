@@ -38,7 +38,8 @@ public:
   void execute() const override;
 
 private:
-  void evalFloat() const;
+  template <typename T>
+  void eval() const;
   void evalQuantized() const;
   void evalQuantizedS16() const;
 };

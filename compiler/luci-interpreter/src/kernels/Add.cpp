@@ -52,7 +52,10 @@ void Add::execute() const
   switch (input1()->element_type())
   {
     case DataType::FLOAT32:
-      evalFloat();
+      eval<float>();
+      break;
+    case DataType::S32:
+      eval<int32_t>();
       break;
     case DataType::U8:
       evalQuantized();
@@ -65,15 +68,24 @@ void Add::execute() const
   }
 }
 
-void Add::evalFloat() const
+template <typename T>
+void Add::eval() const
 {
-  float activation_min{};
-  float activation_max{};
+  T activation_min{};
+  T activation_max{};
   calculateActivationRange(_params.activation, &activation_min, &activation_max);
 
   tflite::ArithmeticParams params{};
-  params.float_activation_min = activation_min;
-  params.float_activation_max = activation_max;
+  if (std::is_integral<T>())
+  {
+    params.quantized_activation_min = activation_min;
+    params.quantized_activation_max = activation_max;
+  }
+  else
+  {
+    params.float_activation_min = activation_min;
+    params.float_activation_max = activation_max;
+  }
 
   const bool need_broadcast = tflite::reference_ops::ProcessBroadcastShapes(
       getTensorShape(input1()), getTensorShape(input2()), &params);
@@ -81,14 +93,14 @@ void Add::evalFloat() const
   if (need_broadcast)
   {
     tflite::reference_ops::BroadcastAdd4DSlow(
-        params, getTensorShape(input1()), getTensorData<float>(input1()), getTensorShape(input2()),
-        getTensorData<float>(input2()), getTensorShape(output()), getTensorData<float>(output()));
+        params, getTensorShape(input1()), getTensorData<T>(input1()), getTensorShape(input2()),
+        getTensorData<T>(input2()), getTensorShape(output()), getTensorData<T>(output()));
   }
   else
   {
-    tflite::reference_ops::Add(params, getTensorShape(input1()), getTensorData<float>(input1()),
-                               getTensorShape(input2()), getTensorData<float>(input2()),
-                               getTensorShape(output()), getTensorData<float>(output()));
+    tflite::reference_ops::Add(params, getTensorShape(input1()), getTensorData<T>(input1()),
+                               getTensorShape(input2()), getTensorData<T>(input2()),
+                               getTensorShape(output()), getTensorData<T>(output()));
   }
 }
 
