@@ -20,6 +20,8 @@ set(SOURCES
     Div.cpp
     Elu.h
     Elu.cpp
+    ExpandDims.h
+    ExpandDims.cpp
     Floor.h
     Floor.cpp
     FloorDiv.h

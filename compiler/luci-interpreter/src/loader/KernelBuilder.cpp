@@ -25,6 +25,7 @@
 #include "kernels/DepthwiseConv2D.h"
 #include "kernels/Div.h"
 #include "kernels/Elu.h"
+#include "kernels/ExpandDims.h"
 #include "kernels/Fill.h"
 #include "kernels/Floor.h"
 #include "kernels/FloorDiv.h"
@@ -275,6 +276,17 @@ std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleElu *node)
   Tensor *output = getOutputTensor(node);
 
   return std::make_unique<kernels::Elu>(input, output);
+}
+
+std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleExpandDims *node)
+{
+  assert(node->arity() == 2);
+
+  const Tensor *input = getInputTensor(node->input());
+  const Tensor *axis = getInputTensor(node->axis());
+  Tensor *output = getOutputTensor(node);
+
+  return std::make_unique<kernels::ExpandDims>(input, axis, output);
 }
 
 std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleFill *node)
