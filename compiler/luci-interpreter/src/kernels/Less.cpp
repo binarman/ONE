@@ -47,7 +47,10 @@ void Less::execute() const
   switch (x()->element_type())
   {
     case DataType::FLOAT32:
-      evalFloat();
+      eval<float>();
+      break;
+    case DataType::S32:
+      eval<int32_t>();
       break;
     case DataType::U8:
       evalQuantized();
@@ -57,25 +60,24 @@ void Less::execute() const
   }
 }
 
-void Less::evalFloat() const
-{
-  const auto x_data = getTensorData<float>(x());
-  const auto y_data = getTensorData<float>(y());
+template <typename T>
+void Less::eval() const {
+  const auto x_data = getTensorData<T>(x());
+  const auto y_data = getTensorData<T>(y());
   auto output_data = getTensorData<bool>(output());
 
   tflite::ComparisonParams op_params;
   op_params.is_broadcast = x()->shape() != y()->shape();
-
   if (op_params.is_broadcast)
   {
-    tflite::reference_ops::Broadcast4DSlowLess(op_params, getTensorShape(x()), x_data,
-                                               getTensorShape(y()), y_data,
-                                               getTensorShape(output()), output_data);
+    tflite::reference_ops::Broadcast4DSlowLessNoScaling(
+        op_params, getTensorShape(x()), x_data, getTensorShape(y()),
+        y_data, getTensorShape(output()), output_data);
   }
   else
   {
-    tflite::reference_ops::Less(op_params, getTensorShape(x()), x_data, getTensorShape(y()), y_data,
-                                getTensorShape(output()), output_data);
+    tflite::reference_ops::LessNoScaling(op_params, getTensorShape(x()), x_data, getTensorShape(y()),
+                                y_data, getTensorShape(output()), output_data);
   }
 }
 
