@@ -72,6 +72,8 @@ set(SOURCES
     Pow.cpp
     Prelu.h
     Prelu.cpp
+    Range.h
+    Range.cpp
     Rank.h
     Rank.cpp
     Relu.h

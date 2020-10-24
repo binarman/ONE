@@ -51,6 +51,7 @@
 #include "kernels/Pad.h"
 #include "kernels/Pow.h"
 #include "kernels/Prelu.h"
+#include "kernels/Range.h"
 #include "kernels/Rank.h"
 #include "kernels/Relu.h"
 #include "kernels/Relu6.h"
@@ -609,6 +610,18 @@ std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CirclePRelu *node)
   Tensor *output = getOutputTensor(node);
 
   return std::make_unique<kernels::Prelu>(input, alpha, output);
+}
+
+std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleRange *node)
+{
+  assert(node->arity() == 3);
+
+  const Tensor *start = getInputTensor(node->start());
+  const Tensor *limit = getInputTensor(node->limit());
+  const Tensor *delta = getInputTensor(node->delta());
+  Tensor *output = getOutputTensor(node);
+
+  return std::make_unique<kernels::Range>(start, limit, delta, output);
 }
 
 std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleRank *node)
