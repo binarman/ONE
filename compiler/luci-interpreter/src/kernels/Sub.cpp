@@ -21,6 +21,7 @@
 #include <tensorflow/lite/kernels/internal/optimized/legacy_optimized_ops.h>
 
 #include <stdexcept>
+#include <type_traits>
 
 namespace luci_interpreter
 {
@@ -43,7 +44,10 @@ void Sub::execute() const
   switch (input1()->element_type())
   {
     case DataType::FLOAT32:
-      evalFloat();
+      eval<float>();
+      break;
+    case DataType::S32:
+      eval<int32_t>();
       break;
     case DataType::U8:
       evalQuantized();
@@ -53,15 +57,24 @@ void Sub::execute() const
   }
 }
 
-void Sub::evalFloat() const
+template <typename T>
+void Sub::eval() const
 {
-  float activation_min{};
-  float activation_max{};
+  T activation_min{};
+  T activation_max{};
   calculateActivationRange(_params.activation, &activation_min, &activation_max);
 
   tflite::ArithmeticParams params{};
-  params.float_activation_min = activation_min;
-  params.float_activation_max = activation_max;
+  if (std::is_integral<T>())
+  {
+    params.quantized_activation_min = activation_min;
+    params.quantized_activation_max = activation_max;
+  }
+  else
+  {
+    params.float_activation_min = activation_min;
+    params.float_activation_max = activation_max;
+  }
 
   const bool need_broadcast = tflite::reference_ops::ProcessBroadcastShapes(
       getTensorShape(input1()), getTensorShape(input2()), &params);
@@ -69,14 +82,14 @@ void Sub::evalFloat() const
   if (need_broadcast)
   {
     tflite::reference_ops::BroadcastSubSlow(
-        params, getTensorShape(input1()), getTensorData<float>(input1()), getTensorShape(input2()),
-        getTensorData<float>(input2()), getTensorShape(output()), getTensorData<float>(output()));
+        params, getTensorShape(input1()), getTensorData<T>(input1()), getTensorShape(input2()),
+        getTensorData<T>(input2()), getTensorShape(output()), getTensorData<T>(output()));
   }
   else
   {
-    tflite::optimized_ops::Sub(params, getTensorShape(input1()), getTensorData<float>(input1()),
-                               getTensorShape(input2()), getTensorData<float>(input2()),
-                               getTensorShape(output()), getTensorData<float>(output()));
+    tflite::optimized_ops::Sub(params, getTensorShape(input1()), getTensorData<T>(input1()),
+                               getTensorShape(input2()), getTensorData<T>(input2()),
+                               getTensorShape(output()), getTensorData<T>(output()));
   }
 }
 

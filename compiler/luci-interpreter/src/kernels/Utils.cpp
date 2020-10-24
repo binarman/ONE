@@ -27,17 +27,18 @@ namespace luci_interpreter
 namespace kernels
 {
 
-void calculateActivationRange(Activation activation, float *activation_min, float *activation_max)
+template <typename T>
+static inline void calculateActivationRangeImpl(Activation activation, T *activation_min, T *activation_max)
 {
   switch (activation)
   {
     case Activation::NONE:
-      *activation_min = std::numeric_limits<float>::lowest();
-      *activation_max = std::numeric_limits<float>::max();
+      *activation_min = std::numeric_limits<T>::lowest();
+      *activation_max = std::numeric_limits<T>::max();
       break;
     case Activation::RELU:
       *activation_min = 0;
-      *activation_max = std::numeric_limits<float>::max();
+      *activation_max = std::numeric_limits<T>::max();
       break;
     case Activation::RELU_N1_TO_1:
       *activation_min = -1;
@@ -50,6 +51,16 @@ void calculateActivationRange(Activation activation, float *activation_min, floa
     default:
       throw std::runtime_error("Unsupported activation.");
   }
+}
+
+void calculateActivationRange(Activation activation, float *activation_min, float *activation_max)
+{
+  calculateActivationRangeImpl(activation, activation_min, activation_max);
+}
+
+void calculateActivationRange(Activation activation, int32_t *activation_min, int32_t *activation_max)
+{
+  calculateActivationRangeImpl(activation, activation_min, activation_max);
 }
 
 static void calculateActivationRangeQuantizedImpl(Activation activation, int32_t qmin, int32_t qmax,
