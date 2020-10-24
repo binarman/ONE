@@ -32,58 +32,11 @@ While::While(const std::vector<const Tensor *> &inputs, std::vector<Tensor *> ou
 {
 }
 
-std::ostream &operator << (std::ostream &os, DataType dt)
-{
-  switch (dt)
-  {
-    case DataType::FLOAT32:
-      os << "float";
-      break;
-    case DataType::S32:
-      os << "int32";
-      break;
-    default:
-      os << "other";
-      break;
-  }
-  return os;
-}
-
-std::ostream &operator << (std::ostream &os, Shape s)
-{
-  os << "[";
-  for (int i = 0; i < s.num_dims(); ++i)
-    os << s.dim(i) << ", ";
-  os << "]";
-  return os;
-}
-
-template <typename T>
-static inline void printTensors(const std::vector<T *> &v)
-{
-  for (int i = 0; i < v.size(); ++i)
-  {
-    const Tensor *t = v[i];
-    std::cout << i << " " << t->name() << " " << t->element_type() << " " << t->shape() << "\n";
-    if (t->shape().num_dims() == 0 && t->element_type() == DataType::S32)
-      std::cout << *t->data<int32_t>() << "\n";
-  }
-}
-
 void While::configure()
 {
   LUCI_INTERPRETER_CHECK(_cond_graph->getOutputTensors().size() == 1);
   LUCI_INTERPRETER_CHECK(_cond_graph->getOutputTensors()[0]->element_type() == DataType::BOOL);
   LUCI_INTERPRETER_CHECK(_cond_graph->getOutputTensors()[0]->shape().num_elements() == 1);
-
-  std::cout << "while op: " << getInputTensors().size() << " " << getOutputTensors().size() << "\n";
-  printTensors(getInputTensors());
-  std::cout << "\n";
-  std::cout << "cond graph " << _cond_graph->getInputTensors().size() << " " << _cond_graph->getOutputTensors().size() << "\n";
-  printTensors(_cond_graph->getInputTensors());
-  std::cout << "\n";
-  std::cout << "body graph " << _body_graph->getInputTensors().size() << " " << _body_graph->getOutputTensors().size() << "\n";
-  printTensors(_body_graph->getInputTensors());
 }
 
 template <typename Tensor>
@@ -158,26 +111,7 @@ void While::execute() const
 
   while (loopCondition())
   {
-    std::cout << "  Iter: " << ++iter << "\n";
-    std::cout << "INPUTS\n";
-    std::cout << "\n";
-    std::cout << "cond graph " << _cond_graph->getInputTensors().size() << "\n";
-    printTensors(_cond_graph->getInputTensors());
-    std::cout << "\n";
-    std::cout << "body graph " << _body_graph->getInputTensors().size() << "\n";
-    printTensors(_body_graph->getInputTensors());
-
     _body_graph->execute();
-
-    std::cout << "\n";
-    std::cout << "OUTPUTS\n";
-    std::cout << "\n";
-    std::cout << "cond graph " << " " << _cond_graph->getOutputTensors().size() << "\n";
-    printTensors(_cond_graph->getOutputTensors());
-    std::cout << "\n";
-    std::cout << "body graph " << " " << _body_graph->getOutputTensors().size() << "\n";
-    printTensors(_body_graph->getOutputTensors());
-    std::cout << "\n";
     copyTensorsNextIteration(_body_graph);
   }
   copyTensorsFromGraph(_body_graph, getOutputTensors());
