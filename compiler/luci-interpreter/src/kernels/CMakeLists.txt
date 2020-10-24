@@ -26,6 +26,8 @@ set(SOURCES
     FloorDiv.cpp
     Equal.h
     Equal.cpp
+    Fill.h
+    Fill.cpp
     FullyConnected.h
     FullyConnected.cpp
     Gather.h
