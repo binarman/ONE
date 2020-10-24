@@ -29,6 +29,7 @@
 #include "kernels/FloorDiv.h"
 #include "kernels/Equal.h"
 #include "kernels/FullyConnected.h"
+#include "kernels/Gather.h"
 #include "kernels/Greater.h"
 #include "kernels/GreaterEqual.h"
 #include "kernels/If.h"
@@ -49,6 +50,7 @@
 #include "kernels/Pad.h"
 #include "kernels/Pow.h"
 #include "kernels/Prelu.h"
+#include "kernels/Rank.h"
 #include "kernels/Relu.h"
 #include "kernels/Relu6.h"
 #include "kernels/Reshape.h"
@@ -320,6 +322,17 @@ std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleFullyConnected *n
   return std::make_unique<kernels::FullyConnected>(input, weights, bias, output, params);
 }
 
+std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleGather *node)
+{
+  assert(node->arity() == 2);
+
+  const Tensor *params = getInputTensor(node->params());
+  const Tensor *indices = getInputTensor(node->indices());
+  Tensor *output = getOutputTensor(node);
+
+  return std::make_unique<kernels::Gather>(params, indices, output, node->axis());
+}
+
 std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleGreater *node)
 {
   assert(node->arity() == 2);
@@ -584,6 +597,16 @@ std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CirclePRelu *node)
   Tensor *output = getOutputTensor(node);
 
   return std::make_unique<kernels::Prelu>(input, alpha, output);
+}
+
+std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleRank *node)
+{
+  assert(node->arity() == 1);
+
+  const Tensor *input = getInputTensor(node->input());
+  Tensor *output = getOutputTensor(node);
+
+  return std::make_unique<kernels::Rank>(input, output);
 }
 
 std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleRelu *node)

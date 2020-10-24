@@ -28,6 +28,8 @@ set(SOURCES
     Equal.cpp
     FullyConnected.h
     FullyConnected.cpp
+    Gather.h
+    Gather.cpp
     Greater.h
     Greater.cpp
     GreaterEqual.h
@@ -68,6 +70,8 @@ set(SOURCES
     Pow.cpp
     Prelu.h
     Prelu.cpp
+    Rank.h
+    Rank.cpp
     Relu.h
     Relu.cpp
     Relu6.h
