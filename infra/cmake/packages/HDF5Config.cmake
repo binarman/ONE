@@ -1,11 +1,13 @@
 function(_HDF5_build)
   if(NOT BUILD_HDF5)
+    message("do not build hdf5 sources")
     return()
   endif(NOT BUILD_HDF5)
 
   nnas_find_package(HDF5Source QUIET)
 
   if(NOT HDF5Source_FOUND)
+    message("no found hdf5 sources")
     return()
   endif(NOT HDF5Source_FOUND)
 
@@ -23,6 +25,8 @@ function(_HDF5_build)
 endfunction(_HDF5_build)
 
 _HDF5_build()
+
+message("EXT overlay dir " ${EXT_OVERLAY_DIR})
 
 find_path(HDF5_CONFIG_DIR "hdf5-config.cmake"
           PATHS ${EXT_OVERLAY_DIR}

@@ -1,4 +1,5 @@
-nnas_find_package(Caffe QUIET)
+return()
+nnnas_find_package(Caffe QUIET)
 
 if(NOT Caffe_FOUND)
   return()

@@ -7,4 +7,7 @@ BUILD_WORKSPACE_PATH="${NNCC_PROJECT_PATH}/${BUILD_WORKSPACE_RPATH}"
 mkdir -p "${BUILD_WORKSPACE_PATH}"
 
 cd "${BUILD_WORKSPACE_PATH}"
+
+echo "${NNCC_PROJECT_PATH}/infra/nncc" "$@"
+
 cmake "${NNCC_PROJECT_PATH}/infra/nncc" "$@"

@@ -1,3 +1,4 @@
+return()
 nncc_find_resource(TensorFlowTests)
 
 #

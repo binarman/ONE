@@ -1,3 +1,4 @@
+return()
 nnas_find_package(HDF5 COMPONENTS STATIC QUIET)
 
 if(NOT HDF5_FOUND)

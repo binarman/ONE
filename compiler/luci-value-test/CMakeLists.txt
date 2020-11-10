@@ -1,3 +1,4 @@
+return()
 unset(LUCI_VALUE_TESTS)
 
 macro(addeval NAME)

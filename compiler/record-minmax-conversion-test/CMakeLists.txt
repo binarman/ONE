@@ -1,3 +1,4 @@
+return()
 unset(RECORD_MINMAX_CONVERSION_TEST)
 
 macro(addTest NAME)

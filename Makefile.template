@@ -1,6 +1,6 @@
 HOST_ARCH?=$(shell uname -m)
 TARGET_ARCH?=$(shell uname -m)
-BUILD_TYPE?=Debug
+BUILD_TYPE?=Release
 CROSS_BUILD?=0
 HOST_OS?=linux
 TARGET_OS?=linux

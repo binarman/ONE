@@ -1,3 +1,4 @@
+return()
 nnas_include(TargetRequire)
 
 unset(REQUIRED_TARGETS)

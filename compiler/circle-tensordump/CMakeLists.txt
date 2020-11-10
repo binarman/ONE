@@ -1,3 +1,4 @@
+return()
 if(NOT TARGET mio_circle)
   return()
 endif(NOT TARGET mio_circle)

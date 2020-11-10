@@ -1,4 +1,4 @@
-nnas_find_package(GTest REQUIRED)
+#nnas_find_package(GTest REQUIRED)
 
 set(SOURCES
     GraphLoader.h
@@ -16,7 +16,7 @@ target_link_libraries(luci_interpreter_loader
     PUBLIC luci_lang luci_interpreter_core
     PRIVATE luci_interpreter_kernels nncc_common)
 
-set(TEST_SOURCES KernelBuilder.test.cpp)
+#set(TEST_SOURCES KernelBuilder.test.cpp)
 
-GTest_AddTest(luci_interpreter_loader_test ${TEST_SOURCES})
-target_link_libraries(luci_interpreter_loader_test luci_interpreter_loader)
+#GTest_AddTest(luci_interpreter_loader_test ${TEST_SOURCES})
+#target_link_libraries(luci_interpreter_loader_test luci_interpreter_loader)

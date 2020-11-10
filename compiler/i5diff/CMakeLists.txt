@@ -1,3 +1,4 @@
+return()
 nnas_find_package(HDF5 QUIET)
 
 if(NOT HDF5_FOUND)

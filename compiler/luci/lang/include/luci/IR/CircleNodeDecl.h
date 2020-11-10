@@ -22,6 +22,8 @@
 #include <loco/IR/NodeMixins.h>
 #include <luci/IR/PropertyShapeStatus.h>
 
+#undef ARG_MAX
+
 #include "CircleOpcode.h"
 #include "CircleNodeVisitor.forward.h"
 #include "CircleQuantParam.h"

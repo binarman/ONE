@@ -1,3 +1,5 @@
+return()
+
 set(MIR_SOURCES
         src/ops/AvgPool2DOp.cpp
         src/ops/BinaryElementwiseOp.cpp

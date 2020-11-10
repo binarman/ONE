@@ -24,6 +24,8 @@
 
 #include <iostream>
 #include <fstream>
+#include <chrono>
+#include <cmath>
 
 void fill_in_tensor(std::vector<char> &data, loco::DataType dtype)
 {
@@ -102,7 +104,29 @@ int main(const int argc, char **argv)
     }
   }
 
-  interpreter->interpret();
-
+  int min = std::numeric_limits<int>::max();
+  int max = std::numeric_limits<int>::min();
+  int64_t avg = 0;
+  int64_t square_sum = 0;
+  constexpr int N = 50;
+  std::cout << "[";
+  for (int i = 0; i < N; ++i)
+  {
+    auto start = std::chrono::system_clock::now();
+    interpreter->interpret();
+    auto finish  = std::chrono::system_clock::now();
+    int duration = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
+    max = std::max(max, duration);
+    min = std::min(min, duration);
+    avg += duration;
+    square_sum += duration * duration;
+    std::cout << duration << ", ";
+    std::cout.flush();
+  }
+  std::cout << "]\n";
+  std::cout << "min: " << min << " ms\n";
+  std::cout << "max: " << max << " ms\n";
+  std::cout << "avg: " << avg / N << " ms\n";
+  std::cout << "var: " << sqrt(square_sum/N - (avg*avg) / (N*N)) << " ms\n";
   return 0;
 }
