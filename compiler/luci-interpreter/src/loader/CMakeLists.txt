@@ -1,5 +1,8 @@
 nnas_find_package(GTest REQUIRED)
 
+find_package(Halide REQUIRED)
+nnas_find_package(flatbuffers)
+
 set(SOURCES
     GraphLoader.h
     GraphLoader.cpp
@@ -14,7 +17,7 @@ set_target_properties(luci_interpreter_loader PROPERTIES POSITION_INDEPENDENT_CO
 target_include_directories(luci_interpreter_loader PUBLIC "${LUCI_INTERPRETER_SOURCE_DIR}")
 target_link_libraries(luci_interpreter_loader
     PUBLIC luci_lang luci_interpreter_core
-    PRIVATE luci_interpreter_kernels nncc_common)
+    PRIVATE luci_interpreter_kernels nncc_common Halide::Halide flatbuffers)
 
 set(TEST_SOURCES KernelBuilder.test.cpp)
 
