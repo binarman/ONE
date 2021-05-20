@@ -301,6 +301,17 @@ std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleElu *node)
   return std::make_unique<kernels::Elu>(input, output);
 }
 
+std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleEqual *node)
+{
+  assert(node->arity() == 2);
+
+  const Tensor *x = getInputTensor(node->x());
+  const Tensor *y = getInputTensor(node->y());
+  Tensor *output = getOutputTensor(node);
+
+  return std::make_unique<kernels::Equal>(x, y, output);
+}
+
 std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleExp *node)
 {
   assert(node->arity() == 1);
@@ -330,17 +341,6 @@ std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleFloorDiv *node)
   Tensor *output = getOutputTensor(node);
 
   return std::make_unique<kernels::FloorDiv>(x, y, output);
-}
-
-std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleEqual *node)
-{
-  assert(node->arity() == 2);
-
-  const Tensor *x = getInputTensor(node->x());
-  const Tensor *y = getInputTensor(node->y());
-  Tensor *output = getOutputTensor(node);
-
-  return std::make_unique<kernels::Equal>(x, y, output);
 }
 
 std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleFullyConnected *node)
@@ -401,6 +401,11 @@ std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleIf *node)
                                        else_graph);
 }
 
+std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleInput *)
+{
+  throw std::runtime_error("Input node cannot be executed.");
+}
+
 std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleInstanceNorm *node)
 {
   assert(node->arity() == 3);
@@ -416,11 +421,6 @@ std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleInstanceNorm *nod
   params.activation = node->fusedActivationFunction();
 
   return std::make_unique<kernels::InstanceNorm>(input, gamma, beta, output, params);
-}
-
-std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleInput *)
-{
-  throw std::runtime_error("Input node cannot be executed.");
 }
 
 std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleL2Normalize *node)
@@ -503,6 +503,16 @@ std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleLocalResponseNorm
   return std::make_unique<kernels::LocalResponseNormalization>(input, output, params);
 }
 
+std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleLogSoftmax *node)
+{
+  assert(node->arity() == 1);
+
+  const Tensor *input = getInputTensor(node->logits());
+  Tensor *output = getOutputTensor(node);
+
+  return std::make_unique<kernels::LogSoftmax>(input, output);
+}
+
 std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleLogicalAnd *node)
 {
   assert(node->arity() == 2);
@@ -545,27 +555,6 @@ std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleLogistic *node)
   return std::make_unique<kernels::Logistic>(input, output);
 }
 
-std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleLogSoftmax *node)
-{
-  assert(node->arity() == 1);
-
-  const Tensor *input = getInputTensor(node->logits());
-  Tensor *output = getOutputTensor(node);
-
-  return std::make_unique<kernels::LogSoftmax>(input, output);
-}
-
-std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleMaximum *node)
-{
-  assert(node->arity() == 2);
-
-  const Tensor *input1 = getInputTensor(node->x());
-  const Tensor *input2 = getInputTensor(node->y());
-  Tensor *output = getOutputTensor(node);
-
-  return std::make_unique<kernels::Maximum>(input1, input2, output);
-}
-
 std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleMaxPool2D *node)
 {
   assert(node->arity() == 1);
@@ -582,6 +571,17 @@ std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleMaxPool2D *node)
   params.activation = node->fusedActivationFunction();
 
   return std::make_unique<kernels::MaxPool2D>(input, output, params);
+}
+
+std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleMaximum *node)
+{
+  assert(node->arity() == 2);
+
+  const Tensor *input1 = getInputTensor(node->x());
+  const Tensor *input2 = getInputTensor(node->y());
+  Tensor *output = getOutputTensor(node);
+
+  return std::make_unique<kernels::Maximum>(input1, input2, output);
 }
 
 std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleMean *node)
@@ -607,6 +607,20 @@ std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleMinimum *node)
   Tensor *output = getOutputTensor(node);
 
   return std::make_unique<kernels::Minimum>(input1, input2, output);
+}
+
+std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleMirrorPad *node)
+{
+  assert(node->arity() == 2);
+
+  const Tensor *input = getInputTensor(node->input());
+  const Tensor *paddings = getInputTensor(node->paddings());
+  Tensor *output = getOutputTensor(node);
+
+  MirrorPadParams params{};
+  params.mode = node->mode();
+
+  return std::make_unique<kernels::MirrorPad>(input, paddings, output, params);
 }
 
 std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleMul *node)
@@ -647,6 +661,17 @@ std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleNotEqual *node)
 std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleOutput *)
 {
   throw std::runtime_error("Output node cannot be executed.");
+}
+
+std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CirclePRelu *node)
+{
+  assert(node->arity() == 2);
+
+  const Tensor *input = getInputTensor(node->input());
+  const Tensor *alpha = getInputTensor(node->alpha());
+  Tensor *output = getOutputTensor(node);
+
+  return std::make_unique<kernels::Prelu>(input, alpha, output);
 }
 
 std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CirclePack *node)
@@ -690,20 +715,6 @@ std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CirclePadV2 *node)
   return std::make_unique<kernels::PadV2>(input, paddings, constant_values, output);
 }
 
-std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleMirrorPad *node)
-{
-  assert(node->arity() == 2);
-
-  const Tensor *input = getInputTensor(node->input());
-  const Tensor *paddings = getInputTensor(node->paddings());
-  Tensor *output = getOutputTensor(node);
-
-  MirrorPadParams params{};
-  params.mode = node->mode();
-
-  return std::make_unique<kernels::MirrorPad>(input, paddings, output, params);
-}
-
 std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CirclePow *node)
 {
   assert(node->arity() == 2);
@@ -714,17 +725,6 @@ std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CirclePow *node)
   Tensor *output = getOutputTensor(node);
 
   return std::make_unique<kernels::Pow>(input1, input2, output);
-}
-
-std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CirclePRelu *node)
-{
-  assert(node->arity() == 2);
-
-  const Tensor *input = getInputTensor(node->input());
-  const Tensor *alpha = getInputTensor(node->alpha());
-  Tensor *output = getOutputTensor(node);
-
-  return std::make_unique<kernels::Prelu>(input, alpha, output);
 }
 
 std::unique_ptr<Kernel> KernelBuilder::visit(const luci::CircleRelu *node)
