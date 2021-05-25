@@ -93,11 +93,10 @@ std::vector<luci::CircleNode *> Codegen::gather_suitable_nodes(luci::CircleNode 
     // process adjacent nodes
     for (auto adj : adjacent)
     {
-      if (_processed.count(adj) || !fits_constrains(adj))
-      {
-        continue;
-      }
+      bool accepted = !_processed.count(adj) && fits_constrains(adj);
       _processed.insert(adj);
+      if (!accepted)
+        continue;
       queue.push(adj);
     }
   }

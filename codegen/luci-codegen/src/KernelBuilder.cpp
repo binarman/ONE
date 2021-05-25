@@ -103,6 +103,10 @@ public:
 
   void visit(luci::CircleSplitOut *node) override;
 
+  void visit(luci::CircleSplitV *node) override;
+
+  void visit(luci::CircleSplitVOut *node) override;
+
   void visit(luci::CircleFullyConnected *node) override;
 
   /// @brief Default fallback
@@ -300,6 +304,55 @@ void CodegenKernelBuilderImpl::visit(luci::CircleSplitOut *node)
   assert(split_dim_node->size<loco::DataType::S32>() == 1);
 
   int split_dim = split_dim_node->at<loco::DataType::S32>(0);
+
+  if (split_dim < 0)
+  {
+    split_dim += split_input_node->rank();
+  }
+
+  int split_input_dim_size = split_input_node->dim(split_dim).value(); // dim size before split
+  int split_output_dim_size =
+    split_input_dim_size / split_node->num_split(); // dim size after split
+
+  assert(split_input_dim_size % split_node->num_split() == 0);
+
+  int start_tile_index = split_output_dim_size * node->index();
+
+  auto output_iterators = iter_space(node);
+
+  auto input_iterators = output_iterators;
+  input_iterators[split_input_node->rank() - 1 - split_dim] += start_tile_index;
+
+  Halide::Func input = _subgraph.get_func(split_input_node);
+
+  Halide::Func split_func = _subgraph.get_func(node);
+
+  split_func(output_iterators) = input(input_iterators);
+}
+
+void CodegenKernelBuilderImpl::visit(luci::CircleSplitV *node)
+{
+  // nothing to do. everything will be done on OUT nodes
+}
+
+void CodegenKernelBuilderImpl::visit(luci::CircleSplitVOut *node)
+{
+  auto split_node = static_cast<luci::CircleSplitV *>(node->input());
+  auto split_input_node = static_cast<luci::CircleNode *>(split_node->input());
+  assert(static_cast<luci::CircleNode *>(split_node->split_dim())->opcode() ==
+         luci::CircleOpcode::CIRCLECONST);
+  auto split_dim_node = static_cast<luci::CircleConst *>(split_node->split_dim());
+
+  assert(split_dim_node->dtype() == loco::DataType::S32);
+  assert(split_dim_node->size<loco::DataType::S32>() == 1);
+
+  int split_dim = split_dim_node->at<loco::DataType::S32>(0);
+
+  if (split_dim < 0)
+  {
+    split_dim += split_input_node->rank();
+  }
+
   int split_input_dim_size = split_input_node->dim(split_dim).value(); // dim size before split
   int split_output_dim_size =
     split_input_dim_size / split_node->num_split(); // dim size after split
@@ -402,11 +455,79 @@ static bool is_supported_split(luci::CircleSplit *split)
 
   int split_dim_value = split_dim->at<loco::DataType::S32>(0);
 
+  if (split_dim_value < 0)
+  {
+    const luci::CircleNode *input = static_cast<luci::CircleNode *>(split->input());
+    if (input->shape_status() != luci::ShapeStatus::VALID)
+      return false;
+    split_dim_value += input->rank();
+  }
+
   auto split_input = static_cast<luci::CircleConst *>(split->input());
   int split_input_dim_size = split_input->dim(split_dim_value).value(); // dim size before split
 
   if (split_input_dim_size % split->num_split() != 0)
     return false;
+
+  for (auto out : succs(split))
+  {
+    if (static_cast<luci::CircleSplitOut *>(out)->shape_status() != luci::ShapeStatus::VALID)
+      return false;
+  }
+  return true;
+}
+
+static bool is_supported_splitv(luci::CircleSplitV *split)
+{
+  bool const_split_dim = static_cast<luci::CircleNode *>(split->split_dim())->opcode() ==
+                         luci::CircleOpcode::CIRCLECONST;
+  if (!const_split_dim)
+    return false;
+  auto split_dim = static_cast<luci::CircleConst *>(split->split_dim());
+  bool supported_split_dim_dtype = (split_dim->dtype() == loco::DataType::S32);
+  if (!supported_split_dim_dtype)
+    return false;
+  bool is_scalar_dim = (split_dim->size<loco::DataType::S32>() == 1);
+  if (!is_scalar_dim)
+    return false;
+
+  int split_dim_value = split_dim->at<loco::DataType::S32>(0);
+
+  if (split_dim_value < 0)
+  {
+    const luci::CircleNode *input = static_cast<luci::CircleNode *>(split->input());
+    if (input->shape_status() != luci::ShapeStatus::VALID)
+      return false;
+    split_dim_value += input->rank();
+  }
+
+  auto split_input = static_cast<luci::CircleConst *>(split->input());
+  int split_input_dim_size = split_input->dim(split_dim_value).value(); // dim size before split
+
+  if (split->num_split() == 0)
+    return false;
+
+  if (split_input_dim_size % split->num_split() != 0)
+    return false;
+
+  auto size_splits = static_cast<luci::CircleNode *>(split->size_splits());
+  if (size_splits->opcode() != luci::CircleOpcode::CIRCLECONST ||
+      size_splits->rank() != 1 ||
+      size_splits->dim(0).value() != split->num_split() ||
+      size_splits->dtype() != loco::DataType::S32)
+  {
+    return false;
+  }
+  auto splits_const = static_cast<luci::CircleConst *>(size_splits);
+  auto expected_split_size = split_input_dim_size / split->num_split();
+  for (int i = 0; i < split->num_split(); ++i)
+  {
+    auto actual_split_size = splits_const->at<loco::DataType::S32>(i);
+    if (actual_split_size == -1)
+      continue;
+    if (actual_split_size != expected_split_size)
+      return false;
+  }
 
   for (auto out : succs(split))
   {
@@ -441,6 +562,10 @@ bool KernelBuilder::is_supported(luci::CircleNode *node)
       return is_supported_split(static_cast<luci::CircleSplit *>(node));
     case luci::CircleOpcode::CIRCLESPLITOUT:
       return is_supported_split(static_cast<luci::CircleSplit *>(node->arg(0)));
+    case luci::CircleOpcode::SPLIT_V:
+      return is_supported_splitv(static_cast<luci::CircleSplitV *>(node));
+    case luci::CircleOpcode::CIRCLESPLITVOUT:
+      return is_supported_splitv(static_cast<luci::CircleSplitV *>(node->arg(0)));
   }
   return false;
 }
