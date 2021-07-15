@@ -19,7 +19,7 @@
 
 #include "kernels/Utils.h"
 
-#include <tensorflow/lite/kernels/internal/optimized/legacy_optimized_ops.h>
+#include "HALConv2d.h"
 
 #include <stdexcept>
 #include <thread>
